@@ -17,7 +17,7 @@
 | 中文 | English |
 | --- | --- |
 | ✅ 任务完成即时提示 | Instant notification when the task is finished |
-| ✅ 一声清脆的"叮"（合成 1568 Hz 正弦波 + 自然衰减） | A single crisp ding (synthesized 1568 Hz sine wave with natural decay) |
+| ✅ 一声清脆的"叮" | A single crisp ding (synthesized 1568 Hz sine wave with natural decay) |
 | ✅ 仅当前会话触发——子代理完成、其他会话绝不误响 | Only triggers for the current session — subagents & other sessions never trigger it |
 | ✅ 内存合成 WAV，不依赖系统声音方案 | WAV synthesized in memory; no dependency on the OS sound scheme |
 | ✅ 无文件写入、无常驻 UI、零残留副作用 | No file writes, no UI, zero lingering side effects |
