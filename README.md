@@ -78,17 +78,23 @@ Dynamic plugins are registered and activated from inside the DSH session via the
 
 ### 方式二：作为组合插件行 / As a composition plugin row
 
-在 Host 组合（`cordis.yml`）或 agent preset 中加入一行，引用本仓库的 `plugin` 目录：
+在 Host 组合（`cordis.yml` / `cordis.patch.yml`）中加入一行。加载器的 `name` 支持 `cordis:` 内置、npm 包名、以及相对组合文件目录的路径；**组合文件与插件不在同一盘时，可在组合目录下建一个目录联接（junction）指向仓库**，然后用相对路径引用：
 
-Add a row to a host composition (`cordis.yml`) or an agent preset that points at this repository's `plugin` directory:
+Add a row to a host composition (`cordis.yml` / `cordis.patch.yml`). The loader's `name` accepts `cordis:` builtins, npm package names, or paths relative to the composition file; **if the composition and the plugin live on different drives, create a junction inside the composition directory pointing at the repo**, then reference it by relative path:
 
-```yaml
-plugins:
-  - name: taskreminder
-    path: ./path/to/TaskReminder/plugin
+```powershell
+# 组合目录下建联接（Windows，跨盘可用）/ junction inside the profile dir (cross-drive OK)
+New-Item -ItemType Junction -Path <profile>/taskreminder -Target <repo>
 ```
 
-> 要求：运行上下文需挂载 `agents`、`shell`、`sandboxPolicy` 服务（DSH 默认具备）。要求 / Requirements: the mounting context must expose the `agents`, `shell` and `sandboxPolicy` services (DSH provides them by default).
+```yaml
+- insert:
+    - id: taskreminder
+      name: ./taskreminder/plugin/index.js
+```
+
+> 要求：运行上下文需挂载 `agents`、`shell`、`sandboxPolicy` 服务（DSH 默认具备）。挂载在 Host 平面时，插件在启动时无法捕获"当前会话"，因此会对**任一顶级会话**的任务完成播放叮声（子代理仍不触发）。
+> Requirements: the mounting context must expose the `agents`, `shell` and `sandboxPolicy` services (DSH provides them by default). Mounted on the host plane, the plugin cannot capture a "current session" at startup, so it rings for **any top-level session**'s task completion (subagents still never trigger it).
 
 ---
 
