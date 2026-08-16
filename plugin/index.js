@@ -83,6 +83,11 @@ $stream.Dispose()
  */
 module.exports = {
   name: 'TaskReminder',
+  // Hard dependencies: Cordis parks this fiber until all three services exist,
+  // then activates. Without `inject`, a host-composition row can apply BEFORE
+  // these services are mounted (activation is service-availability driven),
+  // `ctx.get` returns undefined and the plugin silently never arms.
+  inject: ['agents', 'shell', 'sandboxPolicy'],
   apply(ctx) {
     const agents = ctx.get('agents');
     const shell = ctx.get('shell');
