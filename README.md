@@ -13,18 +13,26 @@ Plays a crisp ding the moment the agent finishes your task — no need to watch 
 
 ## ⚡ 安装 / Install
 
-**一键命令（PowerShell 7+）**：
+**npm 一键安装（推荐）**：
+
+```powershell
+npx dsh-taskreminder@latest
+```
+
+- 从 npm 安装 `dsh-taskreminder` 包并自动安装插件到 `$DSH_HOME/profiles/web`（拷贝源码 + 写组合补丁，幂等）
+- 卸载：`npx dsh-taskreminder@latest uninstall`
+- 指定 profile：`npx dsh-taskreminder@latest --profile <name>`
+- 全局安装后可直接用 `dsh-taskreminder install`
+
+**或 PowerShell 一键脚本**（从 GitHub 克隆仓库 + 建联接，适合开发者改源码）：
 
 ```powershell
 irm https://raw.githubusercontent.com/LongFuXiaoFeng/dsh-task-reminder/main/install.ps1 | iex
 ```
 
-- 自动定位 `$DSH_HOME/profiles/web`，建目录联接指向本仓库，写入组合补丁（幂等）
 - 卸载：`.\install.ps1 -Uninstall`
-- 自定义：`-Profile <name>`、`-RepoPath <path>`
-- 装完 **重启 DSH** 即自动加载
 
-**或作为动态插件**（DSH 会话内，无需重启）：将 [`plugin/index.js`](plugin/index.js) 的 `apply` 函数体粘贴到 `cordis_define` 的 `code.host`（`idPrefix: taskrm`），再 `cordis_run` 激活。
+装完 **重启 DSH** 即自动加载。也可作为动态插件（DSH 会话内，无需重启）：将 [`plugin/index.js`](plugin/index.js) 的 `apply` 函数体粘贴到 `cordis_define` 的 `code.host`（`idPrefix: taskrm`），再 `cordis_run` 激活。
 
 详细说明见 [docs/INSTALL.md](docs/INSTALL.md)。
 
