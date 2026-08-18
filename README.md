@@ -1,141 +1,57 @@
-# 🔊 TaskReminder
+# 🔊 dsh-task-reminder
 
-> DSH 任务完成提醒插件 — 智能体完成任务的那一刻，响起一声清脆的"叮"。
-> A DSH (DeepSeek Harness) Cordis plugin — a crisp **ding** the moment your agent finishes a task.
+> DSH 任务完成提醒插件：任务完成时响一声清脆的"叮"。
+> A DSH (DeepSeek Harness) Cordis plugin: a crisp **ding** when your agent finishes a task.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-![DSH](https://img.shields.io/badge/DSH-DeepSeek%20Harness-blue)
 
-**中文**：TaskReminder 是一个运行在 [DeepSeek Harness (DSH)](https://github.com/deepseek-ai) 中的 Cordis 插件。当**当前会话**的智能体完成你提出的任务（回复结束、转为空闲）时，它会播放**一声清脆的"叮"**，让你无需一直盯着屏幕也能立刻知道任务已完成。
+当**当前会话**的智能体完成任务（回复结束）时播放一声清脆的"叮"，无需盯着屏幕也能知道任务已完成。仅响应顶级会话，子代理不触发；声音为内存合成，不依赖系统声音方案。
 
-**English**: TaskReminder is a Cordis plugin for [DeepSeek Harness (DSH)](https://github.com/deepseek-ai). The moment the agent of the **current session** finishes your task (reply done, agent goes idle), it plays **a single crisp "ding"**, so you instantly know the task is done without staring at the screen.
-
----
-
-## ✨ 功能特性 / Features
-
-| 中文 | English |
-| --- | --- |
-| ✅ 任务完成即时提示 | Instant notification when the task is finished |
-| ✅ 一声清脆的"叮" | A single crisp ding (synthesized 1568 Hz sine wave with natural decay) |
-| ✅ 仅当前会话触发——子代理完成、其他会话绝不误响 | Only triggers for the current session — subagents & other sessions never trigger it |
-| ✅ 内存合成 WAV，不依赖系统声音方案 | WAV synthesized in memory; no dependency on the OS sound scheme |
-| ✅ 无文件写入、无常驻 UI、零残留副作用 | No file writes, no UI, zero lingering side effects |
-| ✅ 随插件生命周期自动清理 | Everything is cleaned up with the plugin lifecycle (stop / update / remove) |
+Plays a crisp ding the moment the agent finishes your task — no need to watch the screen. Only top-level sessions trigger it (subagents never do); the sound is synthesized in memory, independent of the OS sound scheme.
 
 ---
 
-## 🔧 工作原理 / How it works
+## ⚡ 安装 / Install
 
-1. **捕获所属会话**：插件启动时通过 `agents.currentInitiator()` 获取发起本次运行的那个 agent 的 id——`cordis_run` 正是在该 agent 的驱动链内分发的，所以启动时刻的进程级"发起者"就是本会话的 agent。
-   **Identify the owner**: at startup, `agents.currentInitiator()` returns the agent that started the plugin (cordis_run dispatches inside that agent's driver chain), so the process-local initiator at apply time is exactly the current session's agent.
-
-2. **监听状态事件**：监听 `agent/status` 事件。根作用域监听器会收到**所有** agent 的状态，因此按捕获的 owner id 过滤（兜底：只播报顶级、非子代理的 agent）。
-   **Listen & filter**: the plugin listens on the `agent/status` event. Root-scoped listeners receive the status of *every* agent, so events are filtered by the captured owner id (fallback: top-level agents only).
-
-3. **播放叮声**：当 owner agent 转为 `idle`（任务完成）时，通过 `shell` 服务执行 PowerShell，在内存中合成 1568 Hz（G6）正弦波 + 指数衰减的"叮"声并同步播放（约 0.6 秒）。
-   **Play the ding**: when the owner agent turns `idle`, a PowerShell command is run through the `shell` service that synthesizes a 1568 Hz (G6) sine wave with an exponential-decay envelope in memory and plays it synchronously (~0.6 s).
-
-### ⚠️ 一个重要的坑 / A real gotcha we hit
-
-命令使用了 .NET API（`BinaryWriter`、`MemoryStream`、`SoundPlayer`、`Math`）。如果**不显式指定沙箱策略**，命令会运行在 PowerShell 受限语言模式（ConstrainedLanguage）下，这些 .NET 调用被禁用，**声音静默失败**——这正是本插件早期版本"不响"的根因。修复方式：向 `shell.resolve()` 显式传入 `sandboxPolicy: { mode: 'workspace-write', ... }`，让命令以 FullLanguage 运行（与模型工具层一致）。
-
-The ding command uses .NET APIs (`BinaryWriter`, `MemoryStream`, `SoundPlayer`, `Math`). Without an explicit sandbox policy the command runs in PowerShell **ConstrainedLanguage mode**, where those calls are forbidden and the sound silently never plays — this was the actual root cause of the plugin being silent in early versions. The fix: pass an explicit `sandboxPolicy: { mode: 'workspace-write', ... }` to `shell.resolve()`, so the command runs in FullLanguage, same as the model-facing tool layer.
-
----
-
-## 📦 安装与使用 / Installation & Usage
-
-DSH 插件分两种挂载方式，任选其一。
-
-There are two ways to mount a DSH plugin — pick either.
-
-### 方式一：作为动态插件（推荐，零配置）/ As a dynamic plugin (recommended, zero config)
-
-动态插件通过 DSH 会话内的 `cordis_define` / `cordis_run` 工具注册并激活，无需修改任何配置文件：
-
-Dynamic plugins are registered and activated from inside the DSH session via the `cordis_define` / `cordis_run` tools — no config file changes needed:
-
-1. 打开本仓库的 [`plugin/index.js`](plugin/index.js)，复制 `apply(ctx) { ... }` 函数体（从 `apply(ctx) {` 到对应的 `}`）。
-   Open [`plugin/index.js`](plugin/index.js) and copy the body of `apply(ctx) { ... }`.
-
-2. 在 DSH 会话中调用 **cordis_define**：
-   Call **cordis_define** in the DSH session:
-
-   | 参数 | 值 |
-   | --- | --- |
-   | `plugin.kind` | `"new"` |
-   | `plugin.idPrefix` | `"taskrm"`（3–6 个小写字母，Host 会追加唯一后缀 / the Host appends a unique suffix） |
-   | `name` | `"TaskReminder"` |
-   | `purpose` | `"任务完成提醒：当前会话智能体完成任务时播放一声清脆的叮声。"` |
-   | `code.host` | 第 1 步复制的函数体 / the copied function body |
-
-3. 调用 **cordis_run** 激活返回的 `pluginId` / `packageId`（host-only 插件无需审批）。
-   Call **cordis_run** to activate the returned `pluginId` / `packageId` (host-only packages need no approval).
-
-4. 完成。此后每次当前会话的任务完成，都会响起一声"叮"。之后可随时用 `cordis_stop <pluginId>` 暂停、`cordis_undefine <pluginId>` 移除。
-   Done. From now on every finished task in the current session rings once. Pause anytime with `cordis_stop <pluginId>`, remove with `cordis_undefine <pluginId>`.
-
-### 方式二：作为组合插件行 / As a composition plugin row
-
-在 Host 组合（`cordis.yml` / `cordis.patch.yml`）中加入一行。加载器的 `name` 支持 `cordis:` 内置、npm 包名、以及相对组合文件目录的路径；**组合文件与插件不在同一盘时，可在组合目录下建一个目录联接（junction）指向仓库**，然后用相对路径引用：
-
-Add a row to a host composition (`cordis.yml` / `cordis.patch.yml`). The loader's `name` accepts `cordis:` builtins, npm package names, or paths relative to the composition file; **if the composition and the plugin live on different drives, create a junction inside the composition directory pointing at the repo**, then reference it by relative path:
+**一键命令（PowerShell 7+）**：
 
 ```powershell
-# 组合目录下建联接（Windows，跨盘可用）/ junction inside the profile dir (cross-drive OK)
-New-Item -ItemType Junction -Path <profile>/taskreminder -Target <repo>
+irm https://raw.githubusercontent.com/LongFuXiaoFeng/dsh-task-reminder/main/install.ps1 | iex
 ```
 
-```yaml
-- insert:
-    - id: taskreminder
-      name: ./taskreminder/plugin/index.js
-```
+- 自动定位 `$DSH_HOME/profiles/web`，建目录联接指向本仓库，写入组合补丁（幂等）
+- 卸载：`.\install.ps1 -Uninstall`
+- 自定义：`-Profile <name>`、`-RepoPath <path>`
+- 装完 **重启 DSH** 即自动加载
 
-> 要求：运行上下文需挂载 `agents`、`shell`、`sandboxPolicy` 服务（DSH 默认具备）。挂载在 Host 平面时，插件在启动时无法捕获"当前会话"，因此会对**任一顶级会话**的任务完成播放叮声（子代理仍不触发）。
-> Requirements: the mounting context must expose the `agents`, `shell` and `sandboxPolicy` services (DSH provides them by default). Mounted on the host plane, the plugin cannot capture a "current session" at startup, so it rings for **any top-level session**'s task completion (subagents still never trigger it).
+**或作为动态插件**（DSH 会话内，无需重启）：将 [`plugin/index.js`](plugin/index.js) 的 `apply` 函数体粘贴到 `cordis_define` 的 `code.host`（`idPrefix: taskrm`），再 `cordis_run` 激活。
+
+详细说明见 [docs/INSTALL.md](docs/INSTALL.md)。
 
 ---
 
-## 🎵 自定义提示音 / Customizing the sound
+## ⚙️ 工作原理 / How it works
 
-编辑 [`plugin/index.js`](plugin/index.js) 中的 `DING` PowerShell 脚本即可改变音色，关键参数：
-
-Edit the `DING` PowerShell script in [`plugin/index.js`](plugin/index.js) to change the tone. Key parameters:
-
-| 变量 / Variable | 含义 / Meaning | 示例 / Example |
-| --- | --- | --- |
-| `$f` | 基频（Hz）/ fundamental frequency | `1568.0`（G6，清脆 / bright） |
-| `$dur` | 时长（秒）/ duration (s) | `0.6` |
-| `$decay` | 衰减速率（`Exp(-5.0*t/dur)`，越大衰减越快）/ decay rate (larger = shorter tail) | `5.0` |
-| `$v` 的振幅系数 | 音量 / amplitude | `0.35` |
-
-也可以完全替换为其他命令，例如直接播放系统声音：
-
-Or replace it with any other command, e.g. play the OS system sound:
-
-```powershell
-[System.Media.SystemSounds]::Asterisk.Play()
-```
+1. 启动时通过 `agents.currentInitiator()` 捕获所属 agent（动态插件方式）；组合方式退化为"任一顶级会话"
+2. 监听 `agent/status`，agent 转为 `idle`（任务完成）时触发
+3. 经 `shell` 服务以 `workspace-write` 策略执行 PowerShell，合成 1568 Hz 正弦波 + 指数衰减的"叮"（~0.6s）
 
 ---
 
-## 📁 目录结构 / Repository structure
+## 🎵 自定义音色 / Customizing
 
-```
-TaskReminder/
-├── plugin/
-│   └── index.js        # 插件源代码（Cordis 模块）/ plugin source (Cordis module)
-├── docs/
-│   └── INSTALL.md      # 详细安装说明（中文）/ detailed install guide
-├── package.json        # npm 元数据 / npm metadata
-├── LICENSE             # MIT 许可证 / MIT license
-└── README.md           # 本文件 / this file
-```
+编辑 [`plugin/index.js`](plugin/index.js) 中 `DING` 脚本的关键参数：`$f`（频率 Hz）、`$dur`（秒）、`$decay`（衰减速率）、振幅系数 `0.35`。
 
 ---
 
-## 📄 许可证 / License
+## 📁 结构 / Layout
+
+```
+install.ps1          # 一键安装/卸载脚本
+plugin/index.js      # 插件源码
+docs/INSTALL.md      # 详细安装说明
+```
+
+## 📄 License
 
 [MIT](LICENSE) © 2025 [LongFuXiaoFeng](https://github.com/LongFuXiaoFeng)

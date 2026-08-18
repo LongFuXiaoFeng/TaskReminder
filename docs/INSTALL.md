@@ -2,7 +2,20 @@
 
 本仓库的插件是纯 Host 端 Cordis 插件，不包含浏览器（Client）代码，因此激活时**无需审批**。
 
-## 一、作为 DSH 动态插件安装（推荐）
+## 零、一键命令安装（推荐）
+
+PowerShell 7+ 中直接运行（自动 clone 仓库、建联接、写组合补丁）：
+
+```powershell
+irm https://raw.githubusercontent.com/LongFuXiaoFeng/dsh-task-reminder/main/install.ps1 | iex
+```
+
+- 使用本地已有仓库：`.\install.ps1 -RepoPath D:\路径\dsh-task-reminder`
+- 自定义 profile：`.\install.ps1 -Profile <name>`
+- 卸载：`.\install.ps1 -Uninstall`
+- 装完**重启 DSH** 即自动加载，之后每次任务完成都会响"叮"。
+
+## 一、作为 DSH 动态插件安装（无需重启）
 
 动态插件在 DSH 会话内通过模型工具 `cordis_define` / `cordis_run` 完成，不改动任何配置文件。
 
