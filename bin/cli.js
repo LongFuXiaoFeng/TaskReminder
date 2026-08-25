@@ -38,6 +38,7 @@ function patchFile(profile) {
 function log(msg) { console.log('==> ' + msg); }
 function ok(msg) { console.log('    ' + msg); }
 
+const NL = '\r\n';
 const INSERT_BLOCK = [
   '',
   '# TaskReminder (installed via npm: dsh-taskreminder)',
@@ -45,7 +46,7 @@ const INSERT_BLOCK = [
   '    - id: taskreminder',
   '      name: ./taskreminder/plugin/index.js',
   '',
-].join('\n');
+].join(NL);
 
 function install(profile) {
   const profDir = profileDir(profile);
@@ -63,12 +64,16 @@ function install(profile) {
   let content = fs.existsSync(patch) ? fs.readFileSync(patch, 'utf8') : '';
   if (/id:\s*taskreminder/.test(content)) {
     ok('patch already contains the taskreminder row');
-  } else if (/^\s*\[\s*\]\s*$/.test(content.trim())) {
+  } else if (/^\[\s*\]\s*$/.test(
+    content.replace(/^#[^\r\n]*/gm, '').replace(/^\s*$/gm, '').trim()
+  )) {
+    // Empty patch `[]` (possibly with comments above): replace [] with our block.
     content = content.replace(/\[\s*\]/, INSERT_BLOCK.trimStart());
     fs.writeFileSync(patch, content, 'utf8');
     ok('patch updated: ' + patch);
   } else {
-    content = content.trimEnd() + '\n' + INSERT_BLOCK.trimEnd() + '\n';
+    // Non-empty patch without taskreminder: append at the end.
+    content = content.trimEnd() + NL + INSERT_BLOCK.trimEnd() + NL;
     fs.writeFileSync(patch, content, 'utf8');
     ok('patch updated: ' + patch);
   }

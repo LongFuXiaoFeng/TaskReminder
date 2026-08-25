@@ -21,7 +21,7 @@ npx dsh-taskreminder@latest
 
 - 从 npm 安装 `dsh-taskreminder` 包并自动安装插件到 `$DSH_HOME/profiles/web`（拷贝源码 + 写组合补丁，幂等）
 - 卸载：`npx dsh-taskreminder@latest uninstall`
-- 指定 profile：`npx dsh-taskreminder@latest --profile <name>`
+- 指定 profile：`npx dsh-taskreminder@latest --profile <name>`（EAC 桌面客户端：`--profile web-desktop`）
 - 全局安装后可直接用 `dsh-taskreminder install`
 
 **或 PowerShell 一键脚本**（从 GitHub 克隆仓库 + 建联接，适合开发者改源码）：

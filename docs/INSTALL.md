@@ -11,7 +11,7 @@ npx dsh-task-reminder@latest
 ```
 
 - 默认安装到 `$DSH_HOME/profiles/web`
-- 指定 profile：`npx dsh-task-reminder@latest --profile <name>`
+- 指定 profile：`npx dsh-task-reminder@latest --profile <name>`（EAC 桌面客户端：`--profile web-desktop`）
 - 卸载：`npx dsh-task-reminder@latest uninstall`
 - 全局安装后可直接运行 `dsh-task-reminder install`
 - 装完**重启 DSH** 即自动加载，之后每次任务完成都会响"叮"。
