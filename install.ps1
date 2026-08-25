@@ -57,8 +57,16 @@ function New-Junction {
 # ── uninstall ───────────────────────────────────────────────────────────────
 if ($Uninstall) {
   if (Test-Path $linkPath) {
-    Remove-Item $linkPath -Force
-    Ok "junction removed: $linkPath"
+    $item = Get-Item $linkPath
+    if ($item.LinkType -eq 'Junction') {
+      # Directory.Delete on a reparse point removes the LINK only, never the
+      # target contents, and works non-interactively in every PS version.
+      [System.IO.Directory]::Delete($linkPath)
+      Ok "junction removed: $linkPath"
+    } else {
+      Remove-Item $linkPath -Recurse -Force
+      Ok "removed: $linkPath"
+    }
   } else {
     Ok "no junction at $linkPath"
   }
