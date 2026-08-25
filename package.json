@@ -1,7 +1,7 @@
-﻿{
+{
   "name": "dsh-taskreminder",
   "version": "1.0.2",
-  "description": "A DSH (DeepSeek Harness) Cordis plugin that plays a crisp 'ding' the moment the agent finishes a task. / DSH 浠诲姟瀹屾垚鎻愰啋鎻掍欢锛氭櫤鑳戒綋瀹屾垚浠诲姟鏃舵挱鏀句竴澹版竻鑴嗙殑鍙０銆?,
+  "description": "A DSH (DeepSeek Harness) Cordis plugin that plays a crisp 'ding' the moment the agent finishes a task. / DSH 任务完成提醒插件：智能体完成任务时播放一声清脆的叮声。",
   "main": "plugin/index.js",
   "bin": {
     "dsh-taskreminder": "bin/cli.js"
